@@ -31,14 +31,16 @@ randomDay g = let
 
 loop :: StdGen -> Int -> IO ()
 loop rng correctAnswers = let (day, rng') = randomDay rng in do
-    putStrLn $ formatTime defaultTimeLocale "%e %B %0Y" day
+    putStrLn "Press any key when ready"
+    _ <- getChar
+    putStrLn $ formatTime defaultTimeLocale "\r%e %B %0Y" day
     startTime <- getCurrentTime
     answer <- getAnswer
     endTime <- getCurrentTime
     let isCorrect = fromIntegral answer == (toModifiedJulianDay day + 3) `mod` 7
         elapsedTime = floor (1000 * diffUTCTime endTime startTime)
     putStrLn $ printf "\r%s answer in %dms: %s"
-        (if isCorrect then "Correct" else "WRONG")
+        (if isCorrect then "Correct" else ("WRONG (" ++ show answer ++ ")"))
         (floor (1000 * diffUTCTime endTime startTime) :: Int)
         (formatTime defaultTimeLocale "%e %B %0Y == %A" day)
     putStrLn ""
