@@ -21,16 +21,26 @@ firstDay = fromGregorian 1753 01 01
 lastDay :: Day
 lastDay = fromGregorian 2499 12 31
 
-randomDay :: RandomGen g => g -> (Day, g)
-randomDay g = let 
-    (dayNum, g') = randomR 
+isHardCase :: Day -> Bool
+isHardCase d = (yy `mod` 4) == 0 && mm <= 2 where (yy, mm, _) = toGregorian d
+
+randomDay :: RandomGen g => Bool -> g -> (Day, g)
+randomDay wantHardCase g = let
+    (dayNum, g') = randomR
                     ((toModifiedJulianDay firstDay)
                     ,(toModifiedJulianDay lastDay))
                     g
-    in (ModifiedJulianDay dayNum, g')
+    day = ModifiedJulianDay dayNum
+    in if wantHardCase && not (isHardCase day)
+       then randomDay wantHardCase g'
+       else (day, g')
 
 loop :: StdGen -> Int -> IO ()
-loop rng correctAnswers = let (day, rng') = randomDay rng in do
+loop rng0 correctAnswerCount = let
+    (hardCaseInt, rng1) = randomR (0,10::Int) rng0
+    wantHardCase = hardCaseInt < 2
+    (day, rng2) = randomDay wantHardCase rng1
+  in do
     putStrLn "Press any key when ready"
     _ <- getChar
     putStrLn $ formatTime defaultTimeLocale "\r%e %B %0Y" day
@@ -44,8 +54,8 @@ loop rng correctAnswers = let (day, rng') = randomDay rng in do
         (floor (1000 * diffUTCTime endTime startTime) :: Int)
         (formatTime defaultTimeLocale "%e %B %0Y == %A" day)
     putStrLn ""
-    let correctAnswers' = correctAnswers + if isCorrect then 1 else 0
-    when (correctAnswers' < 5) $ loop rng' correctAnswers'
+    let correctAnswerCount' = correctAnswerCount + if isCorrect then 1 else 0
+    when (correctAnswerCount' < 5) $ loop rng2 correctAnswerCount'
 
 getAnswer :: IO Int
 getAnswer = do
