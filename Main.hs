@@ -8,6 +8,11 @@ import Data.Time.Format
 import System.IO
 import Data.Char
 import Text.Printf
+import System.Process
+import qualified Text.Numeral.Language.ENG as EN
+import Text.Numeral.Grammar
+import qualified Data.Text as T
+import Data.Maybe
 
 main :: IO ()
 main = do
@@ -35,6 +40,12 @@ randomDay wantHardCase g = let
        then randomDay wantHardCase g'
        else (day, g')
 
+ordinalWords :: Integral a => a -> Maybe String
+ordinalWords x = T.unpack <$> EN.gb_ordinal defaultInflection x
+
+cardinalWords :: Integral a => a -> Maybe String
+cardinalWords x = T.unpack <$> EN.gb_cardinal defaultInflection x
+
 loop :: StdGen -> Int -> IO ()
 loop rng0 correctAnswerCount = let
     (hardCaseInt, rng1) = randomR (0,10::Int) rng0
@@ -43,7 +54,28 @@ loop rng0 correctAnswerCount = let
   in do
     putStrLn "Press any key when ready"
     _ <- getChar
-    putStrLn $ formatTime defaultTimeLocale "\r%e %B %0Y" day
+    let text = fromMaybe (error $ show day) $ do
+            let (year, month, dayOfMonth) = toGregorian day
+                (century, yearOfCentury) = year `divMod` 100
+            dayOfMonthWords       <- ordinalWords dayOfMonth
+            monthWord             <- lookup month $ zip [1..] $ words "January February March April May June July August September October November December"
+            centuryWords          <- cardinalWords century
+            yearOfCenturyNumWords <- cardinalWords yearOfCentury
+            let yearOfCenturyWords = if yearOfCentury == 0 then "hundred"
+                                     else if yearOfCentury < 9 then "oh " ++ yearOfCenturyNumWords
+                                     else yearOfCenturyNumWords
+            let yearWords = if year == 2000 then "two thousand"
+                            else if 2001 <= year && year <= 2009 then "two thousand and " ++ yearOfCenturyNumWords
+                            else centuryWords ++ " " ++ yearOfCenturyWords
+            return $ concat
+                [ "the "
+                , dayOfMonthWords
+                , " of "
+                , monthWord
+                , ", "
+                , yearWords
+                ]
+    callProcess "say" [text]
     startTime <- getCurrentTime
     answer <- getAnswer
     endTime <- getCurrentTime
