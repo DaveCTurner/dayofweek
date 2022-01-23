@@ -86,8 +86,9 @@ loop rng0 correctAnswerCount = let
         (floor (1000 * diffUTCTime endTime startTime) :: Int)
         (formatTime defaultTimeLocale "%e %B %0Y == %A" day)
     putStrLn ""
+    callProcess "say" [(if isCorrect then "correct" else "wrong") ++ ", that is a " ++ formatTime defaultTimeLocale "%A" day]
     let correctAnswerCount' = correctAnswerCount + if isCorrect then 1 else 0
-    when (correctAnswerCount' < 5) $ loop rng2 correctAnswerCount'
+    if correctAnswerCount' < 5 then loop rng2 correctAnswerCount' else callProcess "say" ["end of test"]
 
 getAnswer :: IO Int
 getAnswer = do
